@@ -5,7 +5,7 @@
 build/
 
 /SoundVolumeView.exe
-soundvolumeview.cfg
+SoundVolumeView.cfg
 
 # Python cache
 __pycache__/
