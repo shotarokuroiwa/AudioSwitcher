@@ -4,6 +4,9 @@
 # PyInstaller build artifacts
 build/
 
+/SoundVolumeView.exe
+soundvolumeview.cfg
+
 # Python cache
 __pycache__/
 *.pyc
