@@ -56,8 +56,7 @@ Windows で **音声出力デバイスをホットキーで瞬時に切り替え
 本ツールは **exe ファイルと同じ階層** に  
 `SoundVolumeView.exe` が存在する必要があります。
 
-- 実行するのは `AudioSwitcher.exe`
-- `SoundVolumeView.exe` は **必ず同じフォルダ** に配置してください
+- 実行するのは `AudioSwitcher.exe`と`SoundVolumeView.exe` は **必ず同じフォルダ** に配置してください
 - サブフォルダに入れると動作しません
 - `SoundVolumeView.exe` は自動生成されません
 
@@ -98,6 +97,7 @@ Windows 起動時に自動で実行したい場合は、スタートアップに
 - Python
 - PyInstaller（exe 化）
 - SoundVolumeView（外部ツール）
+- windows API
 
 ---
 

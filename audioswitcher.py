@@ -1,17 +1,18 @@
 import csv
 import io
 import sys
-import tempfile
-import time
 import subprocess
-import keyboard
+import tempfile
 from pathlib import Path
+import win32con
+import win32gui
 
 if getattr(sys, "frozen", False):
-    _base_dir = Path(sys.executable).parent
+    BASE_DIR = Path(sys.executable).parent
 else:
-    _base_dir = Path(__file__).parent
-SOUND_VOLUME_VIEW = _base_dir / "SoundVolumeView.exe"
+    BASE_DIR = Path(__file__).parent
+
+SOUND_VOLUME_VIEW = BASE_DIR / "SoundVolumeView.exe"
 
 
 def get_output_devices():
@@ -29,15 +30,14 @@ def get_output_devices():
     reader = csv.DictReader(io.StringIO(result.stdout))
     devices = []
 
-    for data in reader:
-        if data.get("Type") == "Device" and data.get("Direction") == "Render":
-            device_id = data.get("Command-Line Friendly ID") or data.get("Item ID")
-            if not device_id:
-                continue
-            devices.append({
-                "name": data.get("Device Name", ""),
-                "id": device_id.strip(),
-            })
+    for row in reader:
+        if row.get("Type") == "Device" and row.get("Direction") == "Render":
+            did = row.get("Command-Line Friendly ID") or row.get("Item ID")
+            if did:
+                devices.append({
+                    "name": row.get("Device Name", ""),
+                    "id": did.strip(),
+                })
 
     return devices
 
@@ -55,7 +55,6 @@ def switch_by_index(index):
     if index < len(devices):
         dev = devices[index]
         set_default_output(dev["id"])
-        print(f"切り替え → {dev['name']}")
 
 
 def show_hotkey_help():
@@ -65,15 +64,14 @@ def show_hotkey_help():
         "=== Audio Switcher Hotkeys ===",
         *[f"Ctrl+Alt+{i+1} : {d['name']}" for i, d in enumerate(devices[:9])],
         "==============================",
-        "Ctrl+Alt+H : ショートカット一覧を表示",
+        "Ctrl+Alt+H : ショートカット一覧",
         "",
     ]
-    text = "\n".join(lines)
 
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".txt", delete=False, encoding="utf-8"
     ) as f:
-        f.write(text)
+        f.write("\n".join(lines))
         path = f.name
 
     ps_cmd = (
@@ -92,30 +90,46 @@ def show_hotkey_help():
         creationflags=subprocess.CREATE_NEW_CONSOLE,
     )
 
+
+HOTKEYS = {
+    1: lambda: switch_by_index(0),
+    2: lambda: switch_by_index(1),
+    3: lambda: switch_by_index(2),
+    4: lambda: switch_by_index(3),
+    5: lambda: switch_by_index(4),
+    6: lambda: switch_by_index(5),
+    7: lambda: switch_by_index(6),
+    8: lambda: switch_by_index(7),
+    9: lambda: switch_by_index(8),
+    10: show_hotkey_help,
+}
+
+
 def main():
-    if not SOUND_VOLUME_VIEW.exists():
-        msg = "SoundVolumeView.exe が見つかりません"
-        if getattr(sys, "frozen", False):
-            import ctypes
-            ctypes.windll.user32.MessageBoxW(0, msg, "Audio Switcher", 0x10)
-        else:
-            print(msg)
-        return
-
-    for i in range(9):
-        keyboard.add_hotkey(
-            f"ctrl+alt+{i+1}",
-            switch_by_index,
-            args=(i,),
+    # 登録
+    for hid, vk in enumerate(
+        [ord(str(i)) for i in range(1, 10)] + [ord("H")], start=1
+    ):
+        win32gui.RegisterHotKey(
+            None,
+            hid,
+            win32con.MOD_CONTROL | win32con.MOD_ALT,
+            vk,
         )
-
-    keyboard.add_hotkey("ctrl+alt+h", show_hotkey_help)
 
     show_hotkey_help()
 
-    while True:
-        time.sleep(1)
-
+    try:
+        while True:
+            msg = win32gui.GetMessage(None, 0, 0)
+            if msg[1][1] == win32con.WM_HOTKEY:
+                hotkey_id = msg[1][2]
+                action = HOTKEYS.get(hotkey_id)
+                if action:
+                    action()
+    finally:
+        for hid in HOTKEYS:
+            win32gui.UnregisterHotKey(None, hid)
 
 if __name__ == "__main__":
     main()
