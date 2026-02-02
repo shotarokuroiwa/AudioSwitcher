@@ -1,3 +1,4 @@
+import os
 import csv
 import io
 import sys
@@ -130,6 +131,9 @@ def main():
     finally:
         for hid in HOTKEYS:
             win32gui.UnregisterHotKey(None, hid)
+
+        if os.path.exists(Path):
+            os.remove(Path)
 
 if __name__ == "__main__":
     main()
